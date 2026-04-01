@@ -131,6 +131,7 @@ export interface FeedbackGeneratedPayload {
 
 // App state
 export interface AppState {
+  languageMismatchError: any;
   // Connection
   connectionStatus: ConnectionStatus;
 

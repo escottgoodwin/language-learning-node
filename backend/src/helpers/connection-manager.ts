@@ -338,11 +338,34 @@ export class ConnectionManager {
             text?: string;
             interactionId?: string;
             interactionComplete?: boolean;
+            languageMismatch?: boolean;
+            detectedLanguage?: string;
           };
           // Only send final transcriptions (interactionComplete=true) to avoid duplicates
           if (data.text && data.interactionComplete) {
             transcription = data.text;
             this.logger.debug({ transcription }, 'transcription_final');
+
+            // If there's a language mismatch, notify the client but DO NOT process the turn.
+            if (data.languageMismatch) {
+              const targetLanguageName = this.languageConfig.name;
+              const detectedLanguageName =
+                getLanguageConfig(data.detectedLanguage?.split('-')[0] || '')
+                  ?.name || data.detectedLanguage;
+
+              this.logger.warn(
+                { detected: data.detectedLanguage, target: this.languageCode },
+                'sending_language_mismatch_error'
+              );
+
+              this.sendToClient({
+                type: 'language_mismatch',
+                message: `Please speak ${targetLanguageName}. I detected you were speaking ${detectedLanguageName}.`,
+                conversationId: this.conversationId,
+                timestamp: Date.now(),
+              });
+              return; // Stop processing this turn.
+            }
 
             // Mark start of response processing for utterance stitching
             this.markProcessingStart(transcription);

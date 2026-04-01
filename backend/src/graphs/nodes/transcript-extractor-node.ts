@@ -33,12 +33,15 @@ export class TranscriptExtractorNode extends CustomNode {
       (metadata.interaction_complete as boolean) || false;
     const iteration = (metadata.iteration as number) || 1;
     const interactionId = String(metadata.interactionId || iteration);
+    const languageMismatch = (metadata.language_mismatch as boolean) || false;
+    // const detectedLanguage = metadata.detected_language as string | undefined;
 
     logger.debug(
       {
         iteration,
         transcriptSnippet: transcript?.substring(0, 50),
         interactionComplete,
+        languageMismatch,
       },
       'transcript_extracted'
     );
@@ -48,7 +51,7 @@ export class TranscriptExtractorNode extends CustomNode {
       interactionId: interactionId,
       text: transcript,
       interactionComplete,
-    };
+    } as InteractionInfo;
   }
 
   async destroy(): Promise<void> {

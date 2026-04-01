@@ -78,6 +78,7 @@ type AppAction =
   | { type: 'ADD_CONVERSATION'; payload: ConversationSummary }
   | { type: 'REMOVE_CONVERSATION'; payload: string }
   | { type: 'RENAME_CONVERSATION'; payload: { id: string; title: string } }
+  | { type: 'SET_LANGUAGE_MISMATCH_ERROR'; payload: string | null }
   | { type: 'SET_USER_ID'; payload: string | null }
   | { type: 'SET_SWITCHING_CONVERSATION'; payload: boolean };
 
@@ -117,6 +118,7 @@ const createInitialState = (storage: HybridStorage): AppState => {
     currentConversationId: null,
     sidebarOpen: false,
     switchingConversation: false,
+    languageMismatchError: null,
   };
 };
 
@@ -242,6 +244,8 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, userId: action.payload };
     case 'SET_SWITCHING_CONVERSATION':
       return { ...state, switchingConversation: action.payload };
+    case 'SET_LANGUAGE_MISMATCH_ERROR':
+      return { ...state, languageMismatchError: action.payload };
     default:
       return state;
   }
@@ -982,6 +986,18 @@ export function AppProvider({ children }: AppProviderProps) {
       }
     });
 
+    wsClient.on('language_mismatch', (data) => {
+      const payload = data as { message: string; conversationId?: string };
+      // Only show error if it's for the current conversation
+      if (
+        !payload.conversationId ||
+        payload.conversationId === stateRef.current.currentConversationId
+      ) {
+        dispatch({ type: 'SET_LANGUAGE_MISMATCH_ERROR', payload: payload.message });
+        // Error will be cleared on next recording attempt
+      }
+    });
+
     wsClient.on('flashcards_generated', (data) => {
       const payload = data as {
         flashcards: Flashcard[];
@@ -1182,6 +1198,8 @@ export function AppProvider({ children }: AppProviderProps) {
         dispatch({ type: 'SET_RECORDING', payload: true });
         dispatch({ type: 'SET_CURRENT_TRANSCRIPT', payload: '' });
         dispatch({ type: 'SET_SPEECH_DETECTED', payload: false });
+        // Clear any previous language mismatch error
+        dispatch({ type: 'SET_LANGUAGE_MISMATCH_ERROR', payload: null });
       } catch (error) {
         console.error('Failed to start streaming:', error);
         alert(

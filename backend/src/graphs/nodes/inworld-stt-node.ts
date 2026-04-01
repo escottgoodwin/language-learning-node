@@ -71,13 +71,19 @@ function encodePCM16ToBase64(chunks: Int16Array[]): string {
 
 const INWORLD_STT_TIMEOUT_MS = 15000;
 
+interface InworldSTTResult {
+  transcript: string;
+  detectedLanguage?: string;
+}
+
 /**
  * Call the Inworld STT REST API with buffered PCM16 audio.
  */
 async function callInworldSTT(
   apiKey: string,
-  audioBase64: string
-): Promise<string> {
+  audioBase64: string,
+  languageCode?: string,
+): Promise<InworldSTTResult> {
   const controller = new AbortController();
   const timeoutId = setTimeout(
     () => controller.abort(),
@@ -96,6 +102,9 @@ async function callInworldSTT(
         transcribeConfig: {
           modelId: 'groq/whisper-large-v3',
           audioEncoding: 'LINEAR16',
+          // Enable language detection from the STT provider
+          enableLanguageDetection: true,
+          ...(languageCode ? { languageCode } : {}),
         },
         audioData: {
           content: audioBase64,
@@ -122,9 +131,12 @@ async function callInworldSTT(
   }
 
   const json = (await response.json()) as {
-    transcription?: { transcript?: string };
+    transcription?: { transcript?: string; detectedLanguage?: string };
   };
-  return json?.transcription?.transcript ?? '';
+  return {
+    transcript: json?.transcription?.transcript ?? '',
+    detectedLanguage: json?.transcription?.detectedLanguage,
+  };
 }
 
 /**
@@ -138,6 +150,7 @@ async function callInworldSTT(
  * - For text: bypasses STT and returns text directly
  * - Returns DataStreamWithMetadata with transcribed text when a turn completes
  */
+
 export class InworldSTTNode extends CustomNode {
   private apiKey: string;
   private connections: { [sessionId: string]: Connection };
@@ -245,6 +258,9 @@ export class InworldSTTNode extends CustomNode {
     let errorMessage = '';
     let isTextInput = false;
     let textContent: string | undefined;
+
+    let languageMismatch = false;
+    let detectedLanguage: string | undefined;
 
     // VAD state
     const speechBuffer: Int16Array[] = [];
@@ -367,8 +383,31 @@ export class InworldSTTNode extends CustomNode {
             'calling_inworld_stt'
           );
 
-          let rawTranscript = await callInworldSTT(this.apiKey, audioBase64);
+          const { transcript, detectedLanguage } = await callInworldSTT(
+            this.apiKey,
+            audioBase64,
+            connection.state.languageCode
+          );
+          let rawTranscript = transcript;
 
+          // Language mismatch check. Compare base language codes (e.g., 'en' from 'en-US')
+          const targetLanguageCode = connection.state.languageCode;
+          if (
+            targetLanguageCode &&
+            detectedLanguage &&
+            detectedLanguage.split('-')[0] !== targetLanguageCode.split('-')[0]
+          ) {
+            logger.warn(
+              {
+                iteration,
+                target: targetLanguageCode,
+                detected: detectedLanguage,
+              },
+              'language_mismatch_detected'
+            );
+            languageMismatch = true;
+          }
+          
           // Stitch pending transcript if present
           if (connection.pendingTranscript) {
             rawTranscript =
@@ -431,6 +470,8 @@ export class InworldSTTNode extends CustomNode {
         error_message: errorMessage,
         is_text_input: isTextInput,
         text_content: textContent,
+        language_mismatch: languageMismatch,
+        detected_language: detectedLanguage,
       });
     } catch (error) {
       logger.error({ err: error, iteration }, 'transcription_failed');
@@ -454,6 +495,8 @@ export class InworldSTTNode extends CustomNode {
         error_message: error instanceof Error ? error.message : String(error),
         is_text_input: isTextInput,
         text_content: textContent,
+        language_mismatch: false,
+        detected_language: undefined,
       });
     } finally {
       clearTimeout(maxDurationTimer);

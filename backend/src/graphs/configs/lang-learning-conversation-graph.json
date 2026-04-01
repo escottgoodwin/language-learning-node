@@ -14,8 +14,8 @@
         }
       },
       {
-        "type": "AssemblyAISTTWebSocketNodeType",
-        "id": "assembly-ai-stt-ws-node-lang-learning",
+        "type": "InworldSTTNodeType",
+        "id": "inworld-stt-node-lang-learning",
         "execution_config": {
           "type": "NodeExecutionConfig",
           "properties": {
@@ -167,19 +167,19 @@
     "edges": [
       {
         "from_node": "audio-input-proxy-lang-learning",
-        "to_node": "assembly-ai-stt-ws-node-lang-learning"
+        "to_node": "inworld-stt-node-lang-learning"
       },
       {
-        "from_node": "assembly-ai-stt-ws-node-lang-learning",
-        "to_node": "assembly-ai-stt-ws-node-lang-learning",
-        "condition_id": "custom-condition-from-assembly-ai-stt-ws-node-lang-learning-to-assembly-ai-stt-ws-node-lang-learning",
+        "from_node": "inworld-stt-node-lang-learning",
+        "to_node": "inworld-stt-node-lang-learning",
+        "condition_id": "custom-condition-from-inworld-stt-node-lang-learning-to-inworld-stt-node-lang-learning",
         "optional": true,
         "loop": true
       },
       {
-        "from_node": "assembly-ai-stt-ws-node-lang-learning",
+        "from_node": "inworld-stt-node-lang-learning",
         "to_node": "transcript-extractor-node-lang-learning",
-        "condition_id": "custom-condition-from-assembly-ai-stt-ws-node-lang-learning-to-transcript-extractor-node-lang-learning"
+        "condition_id": "custom-condition-from-inworld-stt-node-lang-learning-to-transcript-extractor-node-lang-learning"
       },
       {
         "from_node": "transcript-extractor-node-lang-learning",
@@ -233,8 +233,12 @@
         "loop": true
       }
     ],
-    "end_nodes": ["tts-node-lang-learning"],
-    "start_nodes": ["audio-input-proxy-lang-learning"]
+    "end_nodes": [
+      "tts-node-lang-learning"
+    ],
+    "start_nodes": [
+      "audio-input-proxy-lang-learning"
+    ]
   },
   "components": [
     {
@@ -274,12 +278,12 @@
       }
     },
     {
-      "id": "custom-condition-from-assembly-ai-stt-ws-node-lang-learning-to-assembly-ai-stt-ws-node-lang-learning",
-      "type": "custom-condition-from-assembly-ai-stt-ws-node-lang-learning-to-assembly-ai-stt-ws-node-lang-learning"
+      "id": "custom-condition-from-inworld-stt-node-lang-learning-to-inworld-stt-node-lang-learning",
+      "type": "custom-condition-from-inworld-stt-node-lang-learning-to-inworld-stt-node-lang-learning"
     },
     {
-      "id": "custom-condition-from-assembly-ai-stt-ws-node-lang-learning-to-transcript-extractor-node-lang-learning",
-      "type": "custom-condition-from-assembly-ai-stt-ws-node-lang-learning-to-transcript-extractor-node-lang-learning"
+      "id": "custom-condition-from-inworld-stt-node-lang-learning-to-transcript-extractor-node-lang-learning",
+      "type": "custom-condition-from-inworld-stt-node-lang-learning-to-transcript-extractor-node-lang-learning"
     },
     {
       "id": "custom-condition-from-interaction-queue-node-lang-learning-to-text-input-node-lang-learning",

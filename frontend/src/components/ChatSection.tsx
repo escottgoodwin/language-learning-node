@@ -155,24 +155,35 @@ export function ChatSection() {
             </div>
           )}
 
+          {/* Language Mismatch Error */}
+          {state.languageMismatchError && (
+            <div className="chat-error">{state.languageMismatchError}</div>
+          )}
+
           {/* Render existing conversation history */}
           {chatHistory.map((message, index) => (
             <Message key={`msg-${index}`} message={message} />
           ))}
 
           {/* Real-time transcript (while speaking) */}
-          {speechDetected && isRecording && !pendingTranscription && (
+          {isRecording && !pendingTranscription && (
             <div
               className="message learner streaming realtime"
               id="realtime-transcript"
             >
-              <span className="transcript-text">{currentTranscript}</span>
-              {!currentTranscript && (
-                <span className="loading-dots">
-                  <span></span>
-                  <span></span>
-                  <span></span>
-                </span>
+              {speechDetected ? (
+                <>
+                  <span className="transcript-text">{currentTranscript}</span>
+                  {!currentTranscript && (
+                    <span className="loading-dots">
+                      <span />
+                      <span />
+                      <span />
+                    </span>
+                  )}
+                </>
+              ) : (
+                <span className="listening-text">Listening...</span>
               )}
             </div>
           )}
@@ -186,9 +197,6 @@ export function ChatSection() {
           {streamingLLMResponse && (
             <StreamingMessage text={streamingLLMResponse} />
           )}
-        </div>
-        <div className="current-transcript" id="currentTranscript">
-          {currentTranscript}
         </div>
         <form className="text-input-form" onSubmit={handleTextSubmit}>
           <input
